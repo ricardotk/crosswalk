@@ -8,6 +8,8 @@
 #include "xwalk/runtime/browser/ui/native_app_window_views.h"
 #include "xwalk/runtime/browser/tizen/sensor_provider.h"
 
+#include "xwalk/tizen/mobile/ui/tizen_system_indicator.h"
+
 namespace xwalk {
 
 // Tizen uses the Views native window but adds its own features like orientation
@@ -25,6 +27,9 @@ class NativeAppWindowTizen : public NativeAppWindowViews,
 
   // SensorProvider::Observer implementation.
   virtual void OnRotationChanged(gfx::Display::Rotation rotation) OVERRIDE;
+
+  scoped_ptr<TizenSystemIndicator> indicator_;
+  TizenSystemIndicator::Orientation orientation_;
 
   DISALLOW_COPY_AND_ASSIGN(NativeAppWindowTizen);
 };

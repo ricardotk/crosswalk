@@ -21,7 +21,7 @@ SkColor kBGColor = SkColorSetARGB(255, 52, 52, 50);
 namespace xwalk {
 
 TizenSystemIndicator::TizenSystemIndicator()
-    : watcher_(new TizenSystemIndicatorWatcher(this)) {
+    : watcher_(new TizenSystemIndicatorWatcher(this, PORTRAIT)) {
   if (!watcher_->Connect()) {
     watcher_.reset();
     return;
@@ -51,24 +51,34 @@ void TizenSystemIndicator::OnPaint(gfx::Canvas* canvas) {
 }
 
 gfx::Size TizenSystemIndicator::GetPreferredSize() {
-  return watcher_->GetSize();
+  if (IsConnected())
+    return watcher_->GetSize();
+  return gfx::Size(0, 0);
 }
 
-void TizenSystemIndicator::SetImage(const gfx::ImageSkia& img) {
-  image_ = img;
+void TizenSystemIndicator::SetImage(const gfx::ImageSkia* img) {
+  if (!IsConnected() || !img || img->isNull())
+    return;
+  image_ = *img;
   SchedulePaint();
 }
 
 bool TizenSystemIndicator::OnMousePressed(const ui::MouseEvent& event) {
+  if (!IsConnected())
+    return false;
   watcher_->OnMouseDown();
   return true;
 }
 
 void TizenSystemIndicator::OnMouseReleased(const ui::MouseEvent& event) {
-  watcher_->OnMouseUp();
+  if (IsConnected())
+    watcher_->OnMouseUp();
 }
 
 void TizenSystemIndicator::OnTouchEvent(ui::TouchEvent* event) {
+  if (!IsConnected())
+    return;
+
   const gfx::Point position = event->location();
 
   switch (event->type()) {
@@ -125,8 +135,36 @@ void TizenSystemIndicator::OnTouchEvent(ui::TouchEvent* event) {
 }
 
 void TizenSystemIndicator::OnMouseMoved(const ui::MouseEvent& event) {
+  if (!IsConnected())
+    return;
   const gfx::Point position = event.location();
   watcher_->OnMouseMove(position.x(), position.y());
+}
+
+void TizenSystemIndicator::SetOrientation(const Orientation& orientation) {
+  image_ = gfx::ImageSkia();
+
+  if (orientation == LANDSCAPE) {
+    watcher_.reset();
+    set_background(NULL);
+    return;
+  }
+
+  // FIXME(ricardotk): Find a way to avoid creating this background all the
+  // time. set_background() gets the pointer as a scoped_ptr and its ownership.
+  // Every time we set another background, the previous pointer is reseted and
+  // the object is deleted.
+  set_background(views::Background::CreateSolidBackground(kBGColor));
+  watcher_.reset(new TizenSystemIndicatorWatcher(this, orientation));
+  if (!watcher_->Connect()) {
+    watcher_.reset();
+    return;
+  }
+
+  content::BrowserThread::PostTask(
+      content::BrowserThread::IO, FROM_HERE,
+      base::Bind(&TizenSystemIndicatorWatcher::StartWatching,
+                 base::Unretained(watcher_.get())));
 }
 
 }  // namespace xwalk

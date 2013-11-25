@@ -11,6 +11,7 @@
 #include "base/memory/shared_memory.h"
 #include "base/message_loop/message_pump_libevent.h"
 #include "ui/gfx/size.h"
+#include "xwalk/tizen/mobile/ui/tizen_system_indicator.h"
 #include "xwalk/tizen/mobile/ui/tizen_plug_message_writer.h"
 
 namespace xwalk {
@@ -22,7 +23,9 @@ class TizenSystemIndicator;
 // TizenSystemIndicator to update its image.
 class TizenSystemIndicatorWatcher : public base::MessagePumpLibevent::Watcher {
  public:
-  explicit TizenSystemIndicatorWatcher(TizenSystemIndicator* indicator);
+  explicit TizenSystemIndicatorWatcher(TizenSystemIndicator* indicator,
+                                       TizenSystemIndicator::Orientation
+                                       orientation);
   virtual ~TizenSystemIndicatorWatcher();
 
   // base::MessagePumpLibevent::Watcher implementation.
@@ -63,6 +66,7 @@ class TizenSystemIndicatorWatcher : public base::MessagePumpLibevent::Watcher {
   int height_;
   int alpha_;
   bool updated_;
+  TizenSystemIndicator::Orientation orientation_;
   int fd_;
   std::string shm_name_;
   struct EcoreIPCMsgHeader current_msg_header_;

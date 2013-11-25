@@ -10,13 +10,14 @@
 #include "ui/views/view.h"
 #include "ui/views/widget/widget.h"
 #include "xwalk/runtime/browser/ui/top_view_layout_views.h"
-#include "xwalk/tizen/mobile/ui/tizen_system_indicator.h"
 
 namespace xwalk {
 
 NativeAppWindowTizen::NativeAppWindowTizen(
     const NativeAppWindow::CreateParams& create_params)
-    : NativeAppWindowViews(create_params) {
+    : NativeAppWindowViews(create_params),
+      indicator_(new TizenSystemIndicator()),
+      orientation_(TizenSystemIndicator::PORTRAIT) {
   if (SensorProvider::GetInstance())
     SensorProvider::GetInstance()->AddObserver(this);
 }
@@ -30,12 +31,11 @@ void NativeAppWindowTizen::ViewHierarchyChanged(
     const ViewHierarchyChangedDetails& details) {
   if (details.is_add && details.child == this) {
     NativeAppWindowViews::ViewHierarchyChanged(details);
-    TizenSystemIndicator* indicator = new TizenSystemIndicator();
-    if (indicator->IsConnected()) {
-      AddChildView(indicator);
-      top_view_layout()->set_top_view(indicator);
+    if (indicator_->IsConnected()) {
+      AddChildView(indicator_.get());
+      top_view_layout()->set_top_view(indicator_.get());
     } else {
-      delete indicator;
+      indicator_.reset();
     }
   }
 }
@@ -82,8 +82,16 @@ void NativeAppWindowTizen::OnRotationChanged(gfx::Display::Rotation rotation) {
   if (rotation == gfx::Display::ROTATE_90
       || rotation == gfx::Display::ROTATE_270) {
     content_size = gfx::Size(size.height(), size.width());
+    if (indicator_ && orientation_ == TizenSystemIndicator::PORTRAIT) {
+      orientation_ = TizenSystemIndicator::LANDSCAPE;
+      indicator_->SetOrientation(orientation_);
+    }
   } else {
     content_size = size;
+    if (indicator_ && orientation_ == TizenSystemIndicator::LANDSCAPE) {
+      orientation_ = TizenSystemIndicator::PORTRAIT;
+      indicator_->SetOrientation(orientation_);
+    }
   }
 
   GetWidget()->GetRootView()->SetSize(content_size);
