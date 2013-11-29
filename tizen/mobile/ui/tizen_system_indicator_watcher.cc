@@ -64,7 +64,7 @@ TizenSystemIndicatorWatcher::TizenSystemIndicatorWatcher(TizenSystemIndicator*
     alpha_(-1),
     updated_(false),
     fd_(-1) {
-  writer_ = new TizenPlugMessageWriter(&fd_);
+  writer_.reset(new TizenPlugMessageWriter(&fd_));
   memset(&current_msg_header_, 0, sizeof(current_msg_header_));
   SetSizeFromEnvVar();
 }
