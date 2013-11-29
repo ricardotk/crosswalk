@@ -23,13 +23,16 @@ class TizenSystemIndicator : public views::View {
 
   bool IsConnected() const;
 
+  enum Orientation { LANDSCAPE, PORTRAIT };
+  void SetOrientation(const Orientation& orientation);
+
   // views::View implementation.
   virtual void OnPaint(gfx::Canvas* canvas) OVERRIDE;
   gfx::Size GetPreferredSize() OVERRIDE;
 
  private:
   // Will be called immediately after the image was updated
-  void SetImage(const gfx::ImageSkia& img);
+  void SetImage(const gfx::ImageSkia* img);
   virtual bool OnMousePressed(const ui::MouseEvent& event) OVERRIDE;
   virtual void OnMouseReleased(const ui::MouseEvent& event) OVERRIDE;
   virtual void OnMouseMoved(const ui::MouseEvent& event) OVERRIDE;

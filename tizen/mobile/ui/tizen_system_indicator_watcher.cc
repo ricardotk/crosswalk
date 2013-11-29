@@ -15,13 +15,13 @@
 #include "ipc/unix_domain_socket_util.h"
 #include "base/strings/string_tokenizer.h"
 #include "base/environment.h"
-#include "xwalk/tizen/mobile/ui/tizen_system_indicator.h"
 
 using content::BrowserThread;
 
 namespace {
 
-const char kServiceName[] = "elm_indicator_portrait";
+const char kServicePortrait[] = "elm_indicator_portrait";
+const char kServiceLandscape[] = "elm_indicator_landscape";
 const char kServiceNumber[] = "0";
 
 // Environment variable format is x, y, width, height.
@@ -56,15 +56,17 @@ enum PlugOperation {
 
 namespace xwalk {
 
-TizenSystemIndicatorWatcher::TizenSystemIndicatorWatcher(TizenSystemIndicator*
-                                                         indicator)
+TizenSystemIndicatorWatcher::TizenSystemIndicatorWatcher(
+  TizenSystemIndicator* indicator,
+  TizenSystemIndicator::Orientation orientation)
   : indicator_(indicator),
     width_(-1),
     height_(-1),
     alpha_(-1),
     updated_(false),
+    orientation_(orientation),
     fd_(-1) {
-  writer_ = new TizenPlugMessageWriter(&fd_);
+  writer_.reset(new TizenPlugMessageWriter(&fd_));
   memset(&current_msg_header_, 0, sizeof(current_msg_header_));
   SetSizeFromEnvVar();
 }
@@ -103,9 +105,13 @@ void TizenSystemIndicatorWatcher::StopWatching() {
 }
 
 bool TizenSystemIndicatorWatcher::Connect() {
+  std::string orientation = kServicePortrait;
+  if (orientation_ == TizenSystemIndicator::LANDSCAPE)
+    orientation = kServiceLandscape;
+
   base::FilePath path(file_util::GetHomeDir()
                       .Append(".ecore")
-                      .Append(kServiceName)
+                      .Append(orientation)
                       .Append(kServiceNumber));
   return IPC::CreateClientUnixDomainSocket(path, &fd_);
 }
@@ -469,13 +475,16 @@ bool TizenSystemIndicatorWatcher::ProcessPayload() {
 }
 
 void TizenSystemIndicatorWatcher::UpdateIndicatorImage() {
+  if (!indicator_->IsConnected())
+    return;
+
   SkBitmap bitmap;
 
   bitmap.setConfig(SkBitmap::kARGB_8888_Config, width_, height_);
   bitmap.setPixels(shared_memory_->memory());
 
   const gfx::ImageSkia img_skia = gfx::ImageSkia::CreateFrom1xBitmap(bitmap);
-  indicator_->SetImage(img_skia);
+  indicator_->SetImage(&img_skia);
 }
 
 void TizenSystemIndicatorWatcher::SetSizeFromEnvVar() {
